@@ -3,6 +3,7 @@ package utils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Random;
@@ -62,6 +63,22 @@ public class GestionCartes {
 			}
 		}
 		return true;
+	}
+	
+	// d) 
+	public static <T> List<T> rassembler(List<T> lst){
+		List<T> lstConsec = new ArrayList<>();
+		for (ListIterator<T> iterateur = lstConsec.listIterator(); iterateur.hasNext();) {
+			T elt = iterateur.next();
+			
+			if (!lstConsec.contains(elt)) {
+				for (int i = 0; i < Collections.frequency(lst, elt); i++) {
+					lstConsec.add(elt);
+				}
+			}
+			
+		}
+		return lstConsec;
 	}
 	
 	
