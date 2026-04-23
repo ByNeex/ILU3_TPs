@@ -3,8 +3,9 @@
 package jeu;
 import java.util.ArrayList;
 import java.util.Collection;
-
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import cartes.*;
 
@@ -12,10 +13,30 @@ public class ZoneDeJeu {
 	private List<Limite> limites = new ArrayList<>();
 	private List<Bataille> batailles = new ArrayList<>();
 	private Collection<Borne> bornes = new ArrayList<>();
+	private Set<Botte> bottes = new HashSet<>();
+	
+	
+	//ajout de getters pour la classe joeuur
+	
+	public Set<Botte> getBottes() {
+		return bottes;
+	}
+	
+	public List<Limite> getLimites() {
+		return limites;
+	}
+	
+	public List<Bataille> getBatailles() {
+		return batailles;
+	}
+	
+	public boolean estPrioritaire() {
+		return bottes.contains(Cartes.PRIORITAIRE);
+	}
 	
 	
 	public int donnerLimitationVitesse() {
-		if (limites.isEmpty() || limites.getLast() instanceof FinLimite) {
+		if (limites.isEmpty() || limites.getLast() instanceof FinLimite || estPrioritaire()) {
 			return 200;
 		}
 		return 50;
@@ -37,19 +58,27 @@ public class ZoneDeJeu {
 			bornes.add(borne);
 		} else if (c instanceof Limite limite ){
 			limites.add(limite);		
-		} else if (c instanceof FinLimite finLimite){
-			limites.add(finLimite);
 		} else if (c instanceof Bataille bataille) {
 			batailles.add(bataille);	
+		} else if (c instanceof Botte botte) {
+			bottes.add(botte);
 		}
 	}
 	
 	private boolean estDepotFeuVertAutorise() {
+		
+		if(bottes.contains(Cartes.PRIORITAIRE)) {
+			return false;
+		}
+				
 		if(batailles.isEmpty() || 
 				(batailles.getLast().equals(Cartes.FEU_ROUGE)) || 
-				(batailles.getLast() instanceof Parade && !batailles.getLast().equals(Cartes.FEU_VERT))){
+				(batailles.getLast() instanceof Parade && !batailles.getLast().equals(Cartes.FEU_VERT)) ||
+				(batailles.getLast() instanceof Attaque && bottes.contains(new Botte(batailles.getLast().getType()))) ) {
+			
 			return true;
 		}
+				
 		return false;
 	}
 	
@@ -71,6 +100,11 @@ public class ZoneDeJeu {
 	}
 	
 	private boolean estDepotLimiteAutorise(Limite limite) {
+		
+		if(bottes.contains(Cartes.PRIORITAIRE)) {
+			return false;
+		}
+		
 		if(limite instanceof DebutLimite) {
 			if(limites.isEmpty() || limites.getLast() instanceof FinLimite) {
 				return true;
@@ -86,6 +120,11 @@ public class ZoneDeJeu {
 	}
 	
 	private boolean estDepotBatailleAutorise(Bataille bataille) {
+		
+		if (bottes.contains(new Botte(bataille.getType()))) {
+			return false;
+		}
+		
 		if(bataille instanceof Attaque && this.peutAvancer() ) {
 			return true;
 		}
@@ -116,25 +155,60 @@ public class ZoneDeJeu {
 			return true;
 		}
 		
+		if (!estPrioritaire()) {
+			return false; 
+		}
+		
+		if (batailles.isEmpty()) {
+			return true;
+		}
+		
+		if (batailles.getLast() instanceof Parade) {
+			return true;
+		}
+		
+		if (batailles.getLast() instanceof Attaque) {
+			
+			if (batailles.getLast().equals(Cartes.FEU_ROUGE)) { 
+				return true;
+			}
+			Botte botteProtectrice = new Botte(batailles.getLast().getType());
+			
+			if (bottes.contains(botteProtectrice)) {
+				return true;
+			}
+		}
+		
 		return false;
 	}
 	
 
 	public boolean estDepotAutorise(Carte carte) {
-		
-		if (carte instanceof Borne) {
-			return estDepotBorneAutorise((Borne) carte);
-			
-		} else if (carte instanceof Limite) {
-			return estDepotLimiteAutorise((Limite) carte);
-			
-		} else if (carte instanceof Bataille) {
-			return estDepotBatailleAutorise((Bataille) carte);
-			
-		} else if (carte instanceof Botte) {
+		if (carte != null && carte instanceof Botte) {
 			return true; 
+		} else if (carte != null && carte instanceof Bataille bataille) {
+			return estDepotBatailleAutorise(bataille);
+		} else if (carte != null && carte instanceof Borne borne) {
+			return estDepotBorneAutorise(borne);
+		} else if (carte != null && carte instanceof Limite limite) {
+			return estDepotLimiteAutorise(limite);
 		}
 		return false;
+	}
+	
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof ZoneDeJeu zone) {
+			return limites.equals(zone.limites) && bornes.equals(zone.bornes) && batailles.equals(zone.batailles)
+					&& bottes.equals(zone.bottes);
+		}
+		return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return 17 * (limites.hashCode() + bornes.hashCode() + batailles.hashCode() + bottes.hashCode());
 	}
 	
 
